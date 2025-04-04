@@ -6,6 +6,7 @@ set -o pipefail
 
 DOCKER_SOCK=${DOCKER_SOCK:-/var/run/docker.sock}
 UNIX_SOCK=""
+VERBOSE=${VERBOSE:-false}
 CURL_TIMEOUT=${CURL_TIMEOUT:-30}
 WEBHOOK_URL=${WEBHOOK_URL:-""}
 DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-""}
@@ -37,6 +38,7 @@ echo AUTOHEAL_START_PERIOD=${AUTOHEAL_START_PERIOD}
 echo AUTOHEAL_INTERVAL=${AUTOHEAL_INTERVAL}
 echo AUTOHEAL_DEFAULT_STOP_TIMEOUT=${AUTOHEAL_DEFAULT_STOP_TIMEOUT}
 echo AUTOHEAL_ONLY_MONITOR_RUNNING=${AUTOHEAL_ONLY_MONITOR_RUNNING}
+echo VERBOSE=${VERBOSE}
 
 docker_curl() {
   curl --max-time "${CURL_TIMEOUT}" --no-buffer -s \
@@ -79,33 +81,48 @@ restart_container() {
 notify_webhook() {
   local text="$@"
 
+  local curl_args='-s'
+  if [ "$VERBOSE" = true ]; 
+  then
+    curl_args=''
+  fi
+
   if [ -n "$WEBHOOK_URL" ]
   then
+    if [ "$VERBOSE" = true ]; 
+    then
+      echo "Sending webhook request with text: ${text} and payload ${$(generate_webhook_payload $text)}"
+      echo 'curl -s -X POST -H "Content-type: application/json" -d "$(generate_webhook_payload $text)"  $WEBHOOK_URL'
+    fi
     # execute webhook requests as background process to prevent healer from blocking
-    echo "Sending webhook request with text:", ${text}
-    echo 'curl -s -X POST -H "Content-type: application/json" -d "$(generate_webhook_payload $text)"  $WEBHOOK_URL'
-    curl -s -X POST -H "Content-type: application/json" -d "$(generate_webhook_payload $text)"  $WEBHOOK_URL
+    curl ${curl_args} -X POST -H "Content-type: application/json" -d "$(generate_webhook_payload $text)"  $WEBHOOK_URL
   fi
 
-  if [ -n "$DISCORD_WEBHOOK_URL" ]
+  if [ -n "$DISCORD_WEBHOOK_URL" ];
   then
+    if [ "$VERBOSE" = true ]; 
+    then
+      echo "Sending discord webhook request with text: ${text} and payload ${$(generate_discord_webhook_payload $text)}"
+      echo "curl -s -X POST -H \"Content-type: application/json\" -d \"$(generate_discord_webhook_payload $text)\"  $DISCORD_WEBHOOK_URL"
+    fi
     # execute webhook requests as background process to prevent healer from blocking
-    echo "Sending discord webhook request with text:", ${text}
-    echo 'curl -s -X POST -H "Content-type: application/json" -d "$(generate_discord_webhook_payload $text)"  $DISCORD_WEBHOOK_URL'
-    curl -s -X POST -H "Content-type: application/json" -d "$(generate_discord_webhook_payload $text)"  $DISCORD_WEBHOOK_URL
+    curl ${curl_args} -X POST -H "Content-type: application/json" -d "$(generate_discord_webhook_payload $text)"  $DISCORD_WEBHOOK_URL
   fi
 
-  if [ -n "$APPRISE_URL" ]
+  if [ -n "$APPRISE_URL" ];
   then
+    if [ "$VERBOSE" = true ]; 
+    then
+      echo "Sending apprise webhook request with text: ${text} and payload ${$(generate_apprise_payload $text)}"
+      echo "curl -s -X POST -H \"Content-type: application/json\" -d \"$(generate_apprise_payload $text)\"  $APPRISE_URL"
+    fi
     # execute webhook requests as background process to prevent healer from blocking
-    echo "Sending apprise webhook request with text:", ${text}
-    echo 'curl -s -X POST -H "Content-type: application/json" -d "$(generate_apprise_payload $text)"  $APPRISE_URL'
-    curl -s -X POST -H "Content-type: application/json" -d "$(generate_apprise_payload $text)"  $APPRISE_URL
+    curl ${curl_args} -X POST -H "Content-type: application/json" -d "$(generate_apprise_payload $text)"  $APPRISE_URL
   fi
 }
 
 notify_post_restart_script() {
-  if [ -n "$POST_RESTART_SCRIPT" ]
+  if [ -n "$POST_RESTART_SCRIPT" ];
   then
     # execute post restart script as background process to prevent healer from blocking
     $POST_RESTART_SCRIPT "$@" &
@@ -127,7 +144,21 @@ generate_discord_webhook_payload() {
   cat <<EOF
 {
   "username": "Docker Autoheal",
-  "content":"$text"
+  "embeds": [
+      {
+        "author": {
+            "name": "Docker Autoheal"
+        },
+        "title": "Docker Service Health Issue",
+        "color": 16754176,
+        "fields": [
+            {
+            "name": "$text",
+            "value": ""
+            }
+        ] 
+      }
+  ]
 }
 EOF
 }
