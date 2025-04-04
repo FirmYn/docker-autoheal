@@ -110,6 +110,7 @@ services:
 |`DOCKER_SOCK=/var/run/docker.sock`    |Unix socket for curl requests to Docker API|
 |`CURL_TIMEOUT=30`                     |--max-time seconds for curl requests to Docker API|
 |`WEBHOOK_URL=""`                      |post message to the webhook if a container was restarted (or restart failed)|
+|`DISCORD_WEBHOOK_URL=""`              |post message to a discord webhook if a container was restarted (or restart failed)|
 
 ## Testing (building locally)
 ```bash
