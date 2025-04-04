@@ -82,18 +82,24 @@ notify_webhook() {
   if [ -n "$WEBHOOK_URL" ]
   then
     # execute webhook requests as background process to prevent healer from blocking
+    echo "Sending webhook request with text:", ${text}
+    echo 'curl -s -X POST -H "Content-type: application/json" -d "$(generate_webhook_payload $text)"  $WEBHOOK_URL'
     curl -s -X POST -H "Content-type: application/json" -d "$(generate_webhook_payload $text)"  $WEBHOOK_URL
   fi
 
   if [ -n "$DISCORD_WEBHOOK_URL" ]
   then
     # execute webhook requests as background process to prevent healer from blocking
+    echo "Sending discord webhook request with text:", ${text}
+    echo 'curl -s -X POST -H "Content-type: application/json" -d "$(generate_discord_webhook_payload $text)"  $DISCORD_WEBHOOK_URL'
     curl -s -X POST -H "Content-type: application/json" -d "$(generate_discord_webhook_payload $text)"  $DISCORD_WEBHOOK_URL
   fi
 
   if [ -n "$APPRISE_URL" ]
   then
     # execute webhook requests as background process to prevent healer from blocking
+    echo "Sending apprise webhook request with text:", ${text}
+    echo 'curl -s -X POST -H "Content-type: application/json" -d "$(generate_apprise_payload $text)"  $APPRISE_URL'
     curl -s -X POST -H "Content-type: application/json" -d "$(generate_apprise_payload $text)"  $APPRISE_URL
   fi
 }
