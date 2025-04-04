@@ -84,7 +84,7 @@ notify_webhook() {
   local curl_args='-s'
   if [ "$VERBOSE" = true ]; 
   then
-    curl_args=''
+    curl_args='-v'
   fi
 
   if [ -n "$WEBHOOK_URL" ]
